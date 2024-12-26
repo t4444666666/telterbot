@@ -3,19 +3,12 @@ import os
 import time
 from uuid import uuid4
 
-import telethon
+from aiohttp import web  # Add aiohttp for HTTP server
 from telethon import TelegramClient, events
-from telethon import Button
-from telethon.tl.functions.messages import ForwardMessagesRequest
 from telethon.types import Message, UpdateNewMessage
 
 from terabox import get_data
 from tools import (
-    convert_seconds,
-    download_file,
-    download_image_to_bytesio,
-    extract_code_from_url,
-    get_formatted_size,
     get_urls_from_string,
 )
 
@@ -49,6 +42,7 @@ Ready? Just send the link, and I'll handle the rest. 💬
         link_preview=False,
         parse_mode="markdown",
     )
+
 # Handle incoming messages with TeraBox links
 @bot.on(
     events.NewMessage(
@@ -105,5 +99,24 @@ Direct Download Link: [Click here]({data['direct_link']})
     total_time = end_time - start_time
     await m.reply(f"Download completed in {total_time:.2f} seconds.")
 
-bot.start(bot_token="8053512645:AAEVt7qvltW_LDKULe6L69qwNmY-QvBgG-M")
-bot.run_until_disconnected()
+# Start the bot
+async def start_bot():
+    await bot.start(bot_token="8053512645:AAEVt7qvltW_LDKULe6L69qwNmY-QvBgG-M")
+    await bot.run_until_disconnected()
+
+# Create an HTTP server to bind to a port
+async def handle(request):
+    return web.Response(text="Telegram Bot is Running.")
+
+def main():
+    loop = asyncio.get_event_loop()
+    # Set up aiohttp app
+    app = web.Application()
+    app.router.add_get("/", handle)
+
+    # Run the HTTP server and the bot concurrently
+    loop.create_task(start_bot())
+    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
+if __name__ == "__main__":
+    main()
